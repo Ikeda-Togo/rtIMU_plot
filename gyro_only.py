@@ -15,7 +15,7 @@ ser = serial.Serial(
       #rtscts = 0,
       )
 
-file = open("sensor_data.csv", "w")
+file = open("gyro_data.csv", "w")
 deg = 0
 count = 0
 ut = time.time()
@@ -44,51 +44,32 @@ try:
             print("data type :",type(recv_data))
 
 
-            X_acc =BinaryCalc(recv_data[8],recv_data[9])
-            X_acc = X_acc/2048
-
-            Z_acc =BinaryCalc(recv_data[12],recv_data[13])
-            Z_acc = Z_acc/2048
-
-            X_gyro = BinaryCalc(recv_data[16],recv_data[17])
+            X_gyro =BinaryCalc(recv_data[16],recv_data[17])
             X_gyro = X_gyro/16.4
 
+            Y_gyro =BinaryCalc(recv_data[18],recv_data[19])
+            Y_gyro = Y_gyro/16.4
+
+            Z_gyro =BinaryCalc(recv_data[20],recv_data[21])
+            Z_gyro = Z_gyro/16.4
+
             print("recv raw data:",recv_data )
-            print("X acc is :",X_acc )
             print("X gyro is :",X_gyro )
-            print("Z acc is :",Z_acc )
+            print("Y gyro is :",Y_gyro )
+            print("Z gyro is :",Z_gyro )
             print("")
 
-            if X_acc > 1:
-                X_acc = 1
-            if Z_acc > 2:
-                Z_acc = 2
-
-
-            if 0 <= X_acc <= 1 and 0 <= Z_acc <= 1:
-                deg = 90 * X_acc
-
-            if 0 <= X_acc <= 1 and 1 < Z_acc <= 2:
-                deg = 180 - 90 * X_acc
-            
-            if -1 <= X_acc < 0 and 0 <= Z_acc <= 1:
-                deg = 90 * X_acc
-
-            if -1 <= X_acc < 0 and 1 < Z_acc <= 2:
-                deg = -180 - 90 * X_acc
-            
-            else :
-                pass
             
             print("deg = ",deg)
             print("")
-            file.write(str(time_stamp) + "," + str(deg) + "," + str(X_gyro) + "\n")  
+            file.write(str(time_stamp) + "," + str(X_gyro) + "," + str(Y_gyro) + "," + str(Z_gyro) + "\n")  
 
 except KeyboardInterrupt:
     file.close()
     
-    df = pd.read_csv('sensor_data.csv', names=['num1', 'num2','num3'])
+    df = pd.read_csv('gyro_data.csv', names=['num1', 'num2','num3','num4'])
     # plt.plot(range(0,count),df['num1'],marker="o",markersize=2)
     plt.plot(range(0,count),df['num2'])
     plt.plot(range(0,count),df['num3'])
+    plt.plot(range(0,count),df['num4'])
     plt.show()
