@@ -78,8 +78,8 @@ try:
                 deg = -180 - 90 * X_acc
             
             else :
-                pass
-            
+                print("OUT RANGE")
+
             print("deg = ",deg)
             print("")
             file.write(str(time_stamp) + "," + str(deg) + "," + str(X_gyro) + "\n")  
