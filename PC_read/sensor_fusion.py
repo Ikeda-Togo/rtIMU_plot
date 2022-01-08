@@ -7,14 +7,12 @@ import time
 imu = calc_angle.IMU()
 
 ser = serial.Serial(
-    port = "/dev/ttyACM0",
+    # port = "/dev/ttyACM0",  #Linux
+    port = 'COM3',            #Windows
     baudrate = 115200,
     #parity = serial.PARITY_NONE,
     bytesize = serial.EIGHTBITS,
     stopbits = serial.STOPBITS_ONE,
-    # timeout = 0.01,
-    #xonxoff = 0,
-    #rtscts = 0,
     )
 
 file = open("angle_data.csv", "w")
