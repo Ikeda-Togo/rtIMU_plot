@@ -1,8 +1,4 @@
-import serial
-import struct
 import time
-import pandas as pd
-import matplotlib.pyplot as plt
 import math
 
 class IMU:
@@ -140,22 +136,5 @@ class IMU:
         print(" ")
     
         return time_stamp,acc_pitch,self.gyro_deg[1],filter_pitch
-
-if __name__ == "__main__":
-    imu = IMU()
-    ser = serial.Serial(
-        # port = "/dev/ttyACM0",  #Linux
-        port = 'COM3',            #Windows
-        baudrate = 115200,
-        #parity = serial.PARITY_NONE,
-        bytesize = serial.EIGHTBITS,
-        stopbits = serial.STOPBITS_ONE,
-        )
-
-    while(True) :
-        if ser.in_waiting > 0:
-            print('in_waiting is',ser.in_waiting)
-            recv_data = ser.read(28)
-            imu.GetSensorData(recv_data)
         
             

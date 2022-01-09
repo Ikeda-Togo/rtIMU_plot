@@ -1,8 +1,5 @@
-import serial
-import struct
+from machine import Pin, UART
 import time
-import pandas as pd
-import matplotlib.pyplot as plt
 import math
 
 class IMU:
@@ -140,22 +137,18 @@ class IMU:
         print(" ")
     
         return time_stamp,acc_pitch,self.gyro_deg[1],filter_pitch
-
+    
 if __name__ == "__main__":
     imu = IMU()
-    ser = serial.Serial(
-        # port = "/dev/ttyACM0",  #Linux
-        port = 'COM3',            #Windows
-        baudrate = 115200,
-        #parity = serial.PARITY_NONE,
-        bytesize = serial.EIGHTBITS,
-        stopbits = serial.STOPBITS_ONE,
-        )
+    counter=0
+    u= UART(1,baudrate=115200)
+    print('UART test')
 
-    while(True) :
-        if ser.in_waiting > 0:
-            print('in_waiting is',ser.in_waiting)
-            recv_data = ser.read(28)
+    while counter<10:
+        counter += 1
+        if u.any() > 1:
+            print('u.any is ',u.any())
+            recv_data = u.read(28)
+            print('recv-data-is',recv_data)
             imu.GetSensorData(recv_data)
-        
             
