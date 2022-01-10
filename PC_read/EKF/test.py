@@ -4,6 +4,8 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+import numpy as np
+from ekflib import *
 
 class IMU:
     def __init__(self):#constructor
@@ -12,10 +14,10 @@ class IMU:
         self.ut = time.time()
         self.pre_time_stamp = 0
 
-        self.acc=[0] * 3
 
-        self.gyro_deg = [0] * 3
+        self.acc=[0] * 3
         self.gyro = [0] * 3
+
         self.roll = 0
         self.pitch = 0
         self.yaw = 0
@@ -53,10 +55,15 @@ class IMU:
         self.yaw += (self.pregz + gyro[2]) * dt / 2
         self.pregz = gyro[2]
 
-        self.roll  += self.pitch * math.sin(gyro[2] * dt * math.pi/180) ;   
-        self.pitch -= self.roll * math.sin(gyro[2] * dt* math.pi/180) ; 
-        
-        return self.roll , self.pitch , self.yaw
+        self.roll  += self.pitch * math.sin(gyro[2] * dt * math.pi/180)    
+        self.pitch -= self.roll * math.sin(gyro[2] * dt* math.pi/180) 
+
+        u = np.array([ 
+            [self.roll],
+            [self.pitch],
+            [self.yaw]
+        ]) 
+        return u
 
 
     def get_acc_degree(self,acc):
@@ -67,17 +74,6 @@ class IMU:
          
         acc_pitch = math.degrees(math.atan2(ax, math.sqrt(ay * ay + az * az))) #* math.pi/180
 
-        # pitch
-        # if  az >= 0:       
-        #     acc_pitch = math.degrees(math.atan2(ax, math.sqrt(ay * ay + az * az)))# * math.pi/180
-        # elif az < 0:
-        #     acc_pitch = math.degrees(math.atan2(ax, -math.sqrt(ay * ay + az * az)))# * math.pi/180
-        # if acc_pitch >=0:
-        #     acc_pitch = 180 - acc_pitch
-        # elif acc_pitch < 0:
-        #     acc_pitch = -180 - acc_pitch
-
-
         # roll        
         acc_roll  = -math.degrees(math.atan2(ay, az))# * math.pi/180
         if acc_roll >= 0:
@@ -87,11 +83,39 @@ class IMU:
 
         return acc_roll,acc_pitch
     
+    def convert_euler_to_Rxyz(self,x):
+        c1 = np.cos(x[0][0])
+        s1 = np.sin(x[0][0])
+        c2 = np.cos(x[1][0])
+        s2 = np.sin(x[1][0])
+        c3 = np.cos(x[2][0])
+        s3 = np.sin(x[2][0])
+        Rx = np.array([
+            [1, 0, 0],
+            [0, c1, -s1],
+            [0, s1, c1],
+        ])
+        Ry = np.array([
+            [c2, 0, s2],
+            [0, 1, 0],
+            [-s2, 0, c2],
+        ])
+        Rz = np.array([
+            [c3, -s3, 0],
+            [s3, c3, 0],
+            [0, 0, 1],
+        ])
+        Rxyz = Rz @ Ry @ Rx
+        return Rxyz
+    
     def GetSensorData(self ,recv_data):
 
         time_stamp = time.time() - self.ut
         dt=time_stamp - self.pre_time_stamp
         self.pre_time_stamp=time_stamp
+
+        x = np.array([[0], [0], [0]])
+        P = np.diag([1.74E-2*dt**2, 1.74E-2*dt**2, 1.74E-2*dt**2])
     
 
         # get raw data
@@ -101,7 +125,13 @@ class IMU:
         self.gyro[0] = self.BinaryCalc(recv_data[16],recv_data[17])
         self.gyro[1] = self.BinaryCalc(recv_data[18],recv_data[19])
         self.gyro[2] = self.BinaryCalc(recv_data[20],recv_data[21])
+        # self.acc = -np.array([self.BinaryCalc(recv_data[8],recv_data[9]),
+        #                  self.BinaryCalc(recv_data[10],recv_data[11]),
+        #                  self.BinaryCalc(recv_data[12],recv_data[13])])
 
+        # self.gyro = np.array([self.BinaryCalc(recv_data[16],recv_data[17]), 
+        #                  self.BinaryCalc(recv_data[18],recv_data[19]),
+        #                  self.BinaryCalc(recv_data[20],recv_data[21])])
 
         self.acc[0] = self.acc[0]/2048
         self.acc[1] = self.acc[1]/2048
@@ -111,37 +141,40 @@ class IMU:
         self.gyro[1] = self.gyro[1]/16.4
         self.gyro[2] = self.gyro[2]/16.4
 
+        u = self.get_gyro_degree(self.gyro,dt)
+        z = self.get_acc_degree(self.acc)
+        R = np.diag([1.0*dt**2, 1.0*dt**2])
+        Q = np.diag([1.74E-2*dt**2, 1.74E-2*dt**2, 1.74E-2*dt**2])
 
-        self.gyro_deg = self.get_gyro_degree(self.gyro,dt)
-        acc_roll,acc_pitch = self.get_acc_degree(self.acc)
+        x, P = ekf(x, u, z, P, R, Q)
+        Rxyz = self.convert_euler_to_Rxyz(x)
 
-        # filter degree
-        filter_roll = 0.995 * (self.pre_filter_roll + self.gyro[0] * dt) + 0.005 * acc_roll
-        self.pre_filter_roll=filter_roll
-        filter_pitch = 0.995 * (self.pre_filter_pitch + self.gyro[1] * dt) + 0.005 * acc_pitch
-        self.pre_filter_pitch=filter_pitch
 
-        print("Time stamp:",time_stamp)
-        print("dt:",dt)
-        print("data type :",type(recv_data))
-        print("recv raw data:",recv_data )
-        print("------------------------------------")
-        print("X acc is :",self.acc[0] )
-        print("Y acc is :",self.acc[1] )
-        print("Z acc is :",self.acc[2] )
-        print("X gyro is :",self.gyro[0] )
-        print("Y gyro is :",self.gyro[1] )
-        print("Z gyro is :",self.gyro[2] )
-        print("------------------------------------")
-        print("gyro deg:",self.gyro_deg)
-        print("acc deg:",acc_roll,acc_pitch) 
-        print("filtering roll",filter_roll)
-        print("filtering pitch",filter_pitch)
-        print(" ")
+        # print("Time stamp:",time_stamp)
+        # print("dt:",dt)
+        # print("data type :",type(recv_data))
+        # print("recv raw data:",recv_data )
+        # print("------------------------------------")
+        # print("X acc is :",self.acc[0] )
+        # print("Y acc is :",self.acc[1] )
+        # print("Z acc is :",self.acc[2] )
+        # print("X gyro is :",self.gyro[0] )
+        # print("Y gyro is :",self.gyro[1] )
+        # print("Z gyro is :",self.gyro[2] )
+        # print("------------------------------------")
+        # print("gyro deg:",u)
+        # print("acc deg:",z) 
+        print("filtering degree(euler)\n", x)
+        # print("filtering degree\n", Rxyz)
+        # print(" ")
     
-        return time_stamp,acc_pitch,self.gyro_deg[1],filter_pitch
+        return time_stamp,x
 
 if __name__ == "__main__":
+
+    acc = None
+    ts_pre = None
+
     imu = IMU()
     ser = serial.Serial(
         # port = "/dev/ttyACM0",  #Linux
@@ -157,7 +190,6 @@ if __name__ == "__main__":
             print('in_waiting is',ser.in_waiting)
             recv_data = ser.read(28)
             imu.GetSensorData(recv_data)
-
 
         
             

@@ -43,7 +43,6 @@ class IMU:
         self.roll += (self.pregx + gyro[0])*dt / 2
         self.pregx = gyro[0]
 
-
         self.pitch += (self.pregy + gyro[1]) * dt / 2
         self.pregy = gyro[1]
 
@@ -141,14 +140,16 @@ class IMU:
 if __name__ == "__main__":
     imu = IMU()
     counter=0
-    u= UART(1,baudrate=115200)
+    uart0 = UART(0, baudrate=115200, tx=Pin(0), rx=Pin(1))
+    u= UART(1, baudrate=115200, tx=Pin(8), rx=Pin(9))
+    txData = b'\xff\xffRT9A\x12\x1c\xe5\xfeF\x01\xe7\xf7g\n\x01\x00\x02\x00\xff\xff\xb2\x00:\x01\xd5\xff'
+    rxData = bytes()
+    
     print('UART test')
-
-    while counter<10:
-        counter += 1
-        if u.any() > 1:
-            print('u.any is ',u.any())
-            recv_data = u.read(28)
-            print('recv-data-is',recv_data)
-            imu.GetSensorData(recv_data)
-            
+    uart0.write(txData)
+    time.sleep(0.1)
+    if u.any() > 0:
+        print('u.any is ',u.any())
+        recv_data = u.read(28)
+        print('recv-data-is',recv_data)
+        imu.GetSensorData(recv_data)
