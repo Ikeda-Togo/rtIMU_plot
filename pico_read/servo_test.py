@@ -8,11 +8,11 @@ servo1.duty_u16(1650)
 time.sleep(2)
 
 
-for i in range(1650,7850, 100):
+for i in range(1650,7850, 10):
     servo1.duty_u16(i)
-    time.sleep(0.2)
+    time.sleep(0.01)
  
      
-for i in range(7850,1650, -100):
+for i in range(7850,1650, -10):
     servo1.duty_u16(i)
-    time.sleep(0.2)
+    time.sleep(0.01)
