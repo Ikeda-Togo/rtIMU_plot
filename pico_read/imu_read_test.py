@@ -6,7 +6,7 @@ class IMU:
     def __init__(self):#constructor
 
         self.count = 0
-        self.ut = time.time()
+        self.ut = time.ticks_ms()
         self.pre_time_stamp = 0
 
         self.acc=[0] * 3
@@ -85,8 +85,8 @@ class IMU:
     
     def GetSensorData(self ,recv_data):
 
-        time_stamp = time.time() - self.ut
-        dt=time_stamp - self.pre_time_stamp
+        time_stamp = time.ticks_ms() - self.ut
+        dt=(time_stamp - self.pre_time_stamp)/1000
         self.pre_time_stamp=time_stamp
     
 
@@ -116,7 +116,8 @@ class IMU:
         self.pre_filter_roll=filter_roll
         filter_pitch = 0.995 * (self.pre_filter_pitch + self.gyro[1] * dt) + 0.005 * acc_pitch
         self.pre_filter_pitch=filter_pitch
-
+        
+        print("Time:",time.time())
         print("Time stamp:",time_stamp)
         print("dt:",dt)
         print("data type :",type(recv_data))
@@ -137,19 +138,27 @@ class IMU:
     
         return time_stamp,acc_pitch,self.gyro_deg[1],filter_pitch
     
+def check_data(recv_data):
+    for i in range(len(recv_data)):
+        if recv_data[i] == 0xff and recv_data[i+1] == 0xff and:
+            filter_data = recv_data[i+1:i+27]
+            break
+    return filter_data
+            
+    
 if __name__ == "__main__":
     imu = IMU()
     counter=0
-    uart0 = UART(0, baudrate=115200, tx=Pin(0), rx=Pin(1))
-    u= UART(1, baudrate=115200, tx=Pin(8), rx=Pin(9))
-    txData = b'\xff\xffRT9A\x12\x1c\xe5\xfeF\x01\xe7\xf7g\n\x01\x00\x02\x00\xff\xff\xb2\x00:\x01\xd5\xff'
-    rxData = bytes()
+    u= UART(1, baudrate=57600, bits=8, parity=None, stop=1)
+    #txData = b'\xff\xffRT9A\x12\x1c\xe5\xfe\  F\x01\xe7\xf7g\  n\x01\x00\x02\x00\xff\xff\xb2\x00:\x01\xd5\xff'
+    #txData = b'\xff\xffRT9A\x12\xb5\x12\x00\x04\x00\xde\xf7Q\x11\x03\x00\x02\x00\xf8\xff\xcd\x00Y\x00\xe6'
+    #rxData = bytes()
     
     print('UART test')
-    uart0.write(txData)
-    time.sleep(0.1)
-    if u.any() > 0:
-        print('u.any is ',u.any())
-        recv_data = u.read(28)
+    time.sleep(0.02)
+    while u.any() > 0:
+        recv_data = u.read(56)
         print('recv-data-is',recv_data)
-        imu.GetSensorData(recv_data)
+        filter_data = check_data(recv_data)
+        imu.GetSensorData(filter_data)
+        time.sleep(0.02)

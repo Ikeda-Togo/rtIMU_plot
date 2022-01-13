@@ -121,6 +121,7 @@ class IMU:
         filter_pitch = 0.995 * (self.pre_filter_pitch + self.gyro[1] * dt) + 0.005 * acc_pitch
         self.pre_filter_pitch=filter_pitch
 
+        print("Time:",time.time())
         print("Time stamp:",time_stamp)
         print("dt:",dt)
         print("data type :",type(recv_data))
@@ -145,9 +146,9 @@ if __name__ == "__main__":
     imu = IMU()
     ser = serial.Serial(
         # port = "/dev/ttyACM0",  #Linux
-        port = 'COM3',            #Windows
-        baudrate = 115200,
-        #parity = serial.PARITY_NONE,
+        port = 'COM4',            #Windows
+        baudrate = 57600,
+        parity = serial.PARITY_NONE,
         bytesize = serial.EIGHTBITS,
         stopbits = serial.STOPBITS_ONE,
         )
